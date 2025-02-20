@@ -53,7 +53,7 @@ Rlog/
 2. **Run the Code in RStudio**  
    - Clone the repo:  
      ```bash
-     git clone https://github.com/<YourUsername>/Rlog.git
+     git clone git@github.com:tsunsian/Rlog.git
      ```
    - Open an `.Rmd` file in **RStudio**.
    - Click **Knit** to render it as an HTML report.
