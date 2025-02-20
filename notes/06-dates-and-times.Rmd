@@ -1,0 +1,80 @@
+
+---
+title: "Dates and Times in R"
+output: html_document
+---
+
+R has developed a special representation for dates and times. Dates are represented by the `Date` class and times are represented by the `POSIXct` or `POSIXlt` class. Dates are stored internally as the number of days since 1970-01-01, while times are stores internally as the number of seconds since 1970-01-01. 
+
+## 1. Dates in R
+
+Dates are represented by the `Date` class and can be coerced from  a character string using the `as.Date()` function. This is a common way to end up with a `Date` object in R. 
+
+```{r}
+d <- as.Date("1971-01-01")
+class(d)
+typeof(d)
+
+## view the internal representation of a Date object by using the unclass function
+unclass(d)
+```
+
+## 2. Times in R
+
+Times are represented by the `POSIXct` or `POSIXlt` class. 
+
+* `POSIXct` is just a very large integer under the hood. It is a useful class when you want to store times in something like a data frame. 
+* `POSIXlt` is a list underneath.  It stores a bunch of other useful information like the day of the week, day of the year, month, day of the month. It is useful when you need this kind of information.
+
+Times can be coerced from a character string using the `as.POSIXct` or `as.POSIXlt` function. You can coerce back and forth using these two functions between `POSIXct` and `POSIXlt`. 
+
+```{r}
+x <- Sys.time() ## This returns a POSIXct format time
+x 
+typeof(x)
+class(x) ## POSIXct
+unclass(x)
+names(unclass(x))
+
+## coerce to POSIXlt as a list
+p <- as.POSIXlt(x)
+class(p)  ## POSIXlt
+unclass(p)
+names(unclass(p))
+p$wday
+```
+
+You can use the `strptime()` function to convert dates and times written in a character string format into a times format using a format string. You can check the details of format string by `?strptime`. 
+
+```{r}
+datestring <- c("January 10, 2021 11:40", "December 8, 2020 3:40")
+datestring
+t <- strptime(datestring, "%B %d, %Y %H:%M")
+t
+class(t) # POSIXlt
+```
+
+## 3. Generic functions that work on dates and times
+
+For example, there are the following generic functions. 
+
+* `weekdays`: give the day fo the week
+* `months`: give the month name
+* `quarters`: give the quarter number ("Q1", "Q2", "Q3", or "Q4")
+
+These generic functions work on both `Date` class and `POSIXct` or `POSIXlt` class. 
+
+
+## 4. Operations in dates and times
+
+You can use mathematical operations such as + and - on dates and times. Note that you can't perfom operations on `Date` and `POSIXlt`.  To do it, you will have to convert a `Date` to `POSIXlt` using the `as.POSIXlt()` function. 
+
+You can also do comparisons too (i.e. ==, <=, >=).
+
+The nice thing about th date/time classes is that they keep track of all the annoying things about dates and times, like leap years, leap seconds, daylight savings, and time zones. 
+
+```{r}
+x <- as.POSIXct("2021-12-11 01:00:00")
+y <- as.POSIXct("2021-12-11 07:00:00", tz = "GMT")
+y-x
+```

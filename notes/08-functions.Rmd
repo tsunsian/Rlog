@@ -1,0 +1,207 @@
+---
+title: "Functions in R"
+output: html_document
+---
+
+Functions in R are "first class objects", which means that they can be treated much like any ohter R object. Importantly, 
+
+- Functions can be passed as arguments to other functions. This is very handy for the various apply functions, like `lapply()` and `sapply()`. 
+- Functions can be nested, so that you can define a function inside of another function. 
+
+If you are familiar with common language like C, these features might appear a bit strange. However, they are really important in R and can be useful for data analysis. 
+
+## 1. Define a function 
+
+Functions are defined using the `function()` directive and are stored as R objects just like anything else. In particular, they are R objects of class "function". 
+
+#### 1.1 Arguments
+
+Argument is optional to a function defintion. 
+
+You can specify a default value for any argument, if you wish to. 
+
+You can use the `formals()` function to return a list of all the formal arguments to a function. 
+
+```{r}
+f <- function(num = 1) {
+  for (i in seq_len(num)) {
+    cat("Hello, world!\n")
+  }
+}
+
+f()
+
+class(f)
+
+formals(f)
+```
+
+You can set the default value of an argument to `NULL`. It is sometimes useful to allow an argument to take the `NULL` value, which might indicate that the function should take some specific action. 
+
+```
+f <- function(a, b = 1, c, d = NULL) {
+  ## do someting
+}
+```
+
+You can check to see whether an R object is `NULL` with the `is.null()` function. 
+
+#### 1.2 Return values
+
+In R, the return value of a function is always the very last expression that is evaluated. 
+
+Note that there is a `return()` function that can be used to return a value explicitly from a function, but it is rarely used in R. 
+
+```{r}
+f <- function(num = 1) {
+  hello <- "Hello, world!\n"
+  for (i in seq_len(num)) {
+    cat(hello)
+  }
+  chars <- nchar(hello) * num
+  chars ## return value
+}
+
+f(2)
+```
+
+Also, a function can return a function as its value (check *09-scoping-rules-of-R.html*).
+
+## 2. Argument matching
+
+R function arguments can be matched positionally or by name. 
+
+Most of the time, named arguments are useful on the command line when you have a long list of arguments and you want to use the defaults for everything except for an argument near the end of the argument list. Named arguments also help if you can remember the name of the argument and not its position on the argument list. 
+
+#### 2.1 Positional matching
+
+Positional matching just means that R assigns the first value to the first argument, the second value to the second argument, etc..
+
+```{r}
+str(rnorm)
+x <- rnorm(100, 1, 2) ## generate some data
+```
+
+#### 2.2 Matching by name
+
+When specifying arguments by name, it doesn't matter in what order you specify them. 
+
+```{r}
+args(sd)
+
+sd(na.rm = TRUE, x = 1:100)
+```
+
+#### 2.3 Mixing positional matching with matching by name
+
+You can mix positional matching with matching by name. When an argument is matched by name, it is "taken out" of the argument list, and the remaining unnamed arguments are matched in the order that they are listed in the function defintion (i.e. matched by position). 
+
+```{r}
+sd(na.rm = FALSE, 1:100)
+```
+
+#### 2.4 Partial matching
+
+Function arguments can also be partially matched, which is useful for interactive work when the argument name is too long. Partial matching should generally be avoided when writing longer code or programs. 
+
+#### 2.5 Order of matching 
+
+The order of operations when given an argument is
+
+1. Check for exact match for a named argument
+2. Check for a partial match
+3. Check for a positional match
+
+## 3. Lazy evaluation
+
+Argument to functions are evaluated lazily, so they are evaluated only as needed in the body of the function. 
+
+```{r}
+f <- function(a, b) {
+  a^2
+}
+
+f(2)
+```
+
+The above function never actually uses the argument `b`, so calling `f(2)` will not produce an error, because the `2` gets positionally matched to `a`. This behavior can be good or bad. 
+
+```
+> f <- function(a, b) {
++   print(a)
++   print(b)
++ }
+> 
+> f(2)
+[1] 2
+Error in print(b) : argument "b" is missing, with no default
+```
+
+Notice that "2" got printed first before the error was triggered. This is because `b` did ot have to evaluated until after `print(a)`. Once the function tried to evaluate `print(b)`, the function had to throw an error. 
+
+## 4. The `...` argument
+
+
+There is a special argument in R known as the `...` argument, which indicates a variable number of arguments that are usually passed on to other functions. The `...` argument is ofthen used when extending another function and you don't wnat to copy the entire argument list of the original function. 
+
+#### 4.1 An example
+
+The following function makes use of the default `plot()` function along with its entire argument list, but changes the default for the `type` argument from `type = "p"` to `type = "l"`. 
+
+```
+myplot <- function(x, y, type = "l", ...) {
+  plot(x, y, type = type, ...)  ## Pass '...' to 'plot' function
+}
+```
+
+#### 4.2 Generic functions
+
+Generic functions use `...` so that extra arguments can be passed to methods. 
+
+```
+> mean
+function (x, ...) 
+UseMethod("mean")
+<bytecode: 0x7fbff1c89eb0>
+<environment: namespace:base>
+```
+
+#### 4.3 Unknown number of arguments
+
+The `...` argument is necessary when the number of arguments passed to the function cannot be known in advance. This is clear in functions like `paste()` and `cat()`. 
+
+```
+> args(paste)
+function (..., sep = " ", collapse = NULL) 
+NULL
+> args(cat)
+function (..., file = "", sep = " ", fill = FALSE, labels = NULL, 
+    append = FALSE) 
+NULL
+```
+
+Because both `paste()` and `cat()` print out text to the console by combining multiple character vectors together, it is impossible to know in advance how many character vectors will be passed to the function by the user. So the first argument to either function is `...`. 
+
+#### 4.4 Arguments after the `...` argument
+
+One catch with `...` is that any arguments that appear after `...` on the argument list must be named explicitly and cannot be partially matched or matched positionally, if the default values for these arguments are not going to be used. 
+
+```
+> paste("a", "b", sep = ":")
+[1] "a:b"
+> paste("a", "b", se = ":")
+[1] "a b :"
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

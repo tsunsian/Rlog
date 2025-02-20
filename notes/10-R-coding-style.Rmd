@@ -1,0 +1,62 @@
+---
+title: "R Style Guide"
+output: html_document
+---
+
+Two R packages can check your code for conformance to style: 
+
+- *lintr*
+- *styler*
+
+### 1. Naming 
+
+- File names should be meaningful and end in .R
+- Variable and function names should be lowercase. Use an underscore (`_`) to separate words within a name (so called snake case), e.g. `first_day_of_the_month`. 
+- Generally variable names should be nouns and function names should be verbs. 
+- Avoid using dots in function and class names. Base R uses dots in function names (`contrib.url()`) and class names (`data.frame`), but it's better to reserve dots exclusively for the S3 object system. 
+
+### 2. Syntax
+
+- Always indent 2 spaces, unless it's a function definition that runs over multiple lines. In that case, indent the second line to where the definition starts. See example below. 
+- use `"` not `'`
+
+```
+long_function_name <- function(a = "default value of a", 
+                               b = "default value of b", 
+                               c = "default value of c") {
+  # As usual code is indented by two spaces.
+}
+```
+
+### Organization
+
+#### 3.1 Commenting guidelines
+
+Each line of a comment should start with the comment symbol `#` and a single space. Comments should explain why not what. Use commented lines of `-` or `=` to break up your file into easily readable chunks. 
+
+```
+# Load data =============================================
+```
+
+#### 3.2 Objects and Methods
+
+The S language has two object systems, S3 and S4, both of which are available in R. S3 methods are more interactive and flexible, whereas S4 methods are more formal and rigorous. Use S3 objects and methods unless there is a strong reason to use S4 objects or methods. A primary justification for an S4 object would be to use objects directly in C++ code. A primary justification for an S4 method would be to dispath on two arguments. 
+
+#### 3.3 Error and Warning reporting
+
+Defensive programming should always be used: 
+
+- assumptions made during development should be checked explicitly
+- in `if-else` structure, there should be a last `else` to collect and report all unexpected cases not processed in used logic
+
+To report <span style="color: red;">Error</span> messages, use the `stop()` or `stopeifnot()` function. To report <span style="color:green">Warning</span> messages, use the `warning()` function. Function `try()` can be used in conjunction with error rising functions if stoping of execution is not required. 
+
+```
+try(if(nrow(diff_report) > 0) {
+  message("The table below contains discrepancy with expectation.")
+  print(diff_report)
+  stop("Prohibited packages are in the environment.")
+})
+```
+
+

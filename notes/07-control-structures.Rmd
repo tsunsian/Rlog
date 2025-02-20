@@ -1,0 +1,155 @@
+
+---
+title: "Control Structures in R"
+output: html_document
+---
+
+Commonly used control structures in R are
+
+* `if` and `else`: testing a condition and act on it
+* `for`: execute a loop a fixed number of times
+* `while`: execute a loop while a condition is true
+* `repeat`: execute an infinite loop (must `break` out of it to stop)
+* `break`: break the execution of a loop
+* `next`: skip an interation of a loop
+
+## 1. `if-else`
+
+```
+if (<condition>) {
+    ## do something
+} else if  (<condition2>) {
+    ## do something different
+} else {
+    ## do something different
+}
+```
+
+Of course, the `else` claus is not necessary. 
+
+Sometimes there is more than one condition. Conditions are always evaluated from left to right. In the example below, if `x` were less than 3, the condition `x < 11` would not have been evaluated. 
+
+```
+if (x >=3 && x < 11) {
+    ## do something
+}
+```
+
+## 2. `for` loops
+
+For loops are pretty the only looping construct that you will need in R. 
+
+In R, for loops take an iterator variable and assign it successive values from a sequence or vector. For loops are most commonly used for iterating over the elements of an object (list, vector, etc.). 
+
+#### 2.1 
+```
+x <- c("a", "b", "c", "d")
+
+for (i in 1:4) {
+    print(x[i])
+}
+```
+
+#### 2.2 
+
+You can use `seq_along()` and `seq_len()` in conjunction with for loops.  These two functions return an integer vector. (Unless it's a long vector when it will be double.)
+
+```
+for (i in seq_along(x)) {
+  print(x[i])
+}
+```
+
+#### 2.3 
+
+It is not necessary to use an index-type varaible. 
+
+```
+for (letter in x) {
+    print(letter)
+}
+```
+
+#### 2.4 Nested for loops
+
+```{r}
+x <- matrix(1:4, 2, 2)
+
+for (i in seq_len(nrow(x))) {
+    for (j in seq_len(ncol(x))) {
+        print(x[i, j])
+    }
+}
+```
+
+The above code is equivalent to the following: 
+
+```{r}
+x <- matrix(1:4, 2, 2)
+
+for (e in x) {
+  print(e)
+}
+```
+
+Nested loops are commonly needed for multidimensional or hierarchical data structures (e.g. lists, matrices). However, nesting over 2 to 3 levels often makes it difficult to read/understand the code. 
+
+If you find yourself in need of a large number of nested loops, you may want to break up the loops by using functions. 
+
+
+## 3. `while` loops
+
+While loops can potentially result in infinite loops if not written properly. Use with care!
+
+Example: 
+
+```
+count <- 0 
+while (count < 10) {
+    print(count)
+    count = count + 1
+}
+```
+
+## 4. `repeat` loops
+
+`repeat` initiates an infinite loop right from the start. These are not commonly used in statistical or data analysis applications but they do have their uses. The only way to exit a `repeat` loop is to call `break`. 
+
+For example, 
+
+```
+x0 <- 1
+tol <- 1e-8
+
+repeat {
+    x1 <- computeEstimate() ## made-up function
+    if (abs(x1 - x0) < tol) {
+        break
+    } else {
+        x0 <- x1
+    }
+}
+```
+
+The loop above is a bit dangerous as there's no guarantee it will stop. You could get in a situation where the values of `x0` and `x1` oscillate back and forth and never converge. Better to set a hard limit on the number of iterations by using a `for` loop and then report whether convergence was achieved or not. 
+
+
+## 5. `next`, `break`
+
+`next` is used to skip an iteration of a loop. 
+
+`break` is used to exit a loop immediately, regardless of what iteration the loop may be on. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

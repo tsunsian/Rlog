@@ -1,0 +1,138 @@
+---
+title: "Subsetting R objects"
+output: 
+  html_document:
+    toc: yes
+---
+
+There are three operators that can be used to extract subsets of R objects. 
+
+* `[`: always return an object of the same class as original.  Can be used to select multiple elements of an object. 
+* `[[`: used to extract a list or data frame. The class of the returned object will not necessarily be a list or data frame. Can only return a single element. 
+
+* `$`: used to extract elements of a list or data frame by literal name. Its semantics are similar to that of `[[`.
+
+
+## 1. Subsetting vectors 
+Vectors can be subset using `[` operator. 
+```{r}
+x <- c("a", "b", "c", "d", "e")
+x[1]
+
+## extracting multiple elements
+x[1:4]
+
+## extracting multiple elements in arbitrary order
+x[c(1, 3, 4)]
+
+## passing a logical sequence to the `[` operator to extract elements meeting a given condition
+x > "b"
+x[x > "b"]
+x[c(T, F, T, T)]
+```
+
+## 2. Subsetting matrices
+```{r}
+x <- matrix(1:6, 2, 3)
+x
+
+# extracting one element
+x[1, 2]
+
+# extracting a row
+x[1, ]
+
+# extracting a column
+x[, 2]
+
+```
+
+#### 2.1 dropping dimensions
+By default, when a single element (or row or column) of a matrix is retrieved, it is returned as a vector of length 1 rather than `1 x 1` matrix. Often this is exactly what we want, but this behavior can be turned off by setting `drop = FALSE`. 
+
+```{r}
+x <- matrix(1:6, 2, 3)
+x[1, 2]
+x[1, 2, drop = FALSE]
+
+## extracting a single row
+x[1, , drop = FALSE]
+```
+
+Be careful of R's automatic dropping of dimensions.  This is a feature that is often quite useful during interactive work, but can later come back to bite you when you are writing longer programs or functions. 
+
+## 3. Subsetting lists (or data frames)
+Lists can be subset using all three of the operators mentioned above, and all three are used for different purposes. 
+The `[[` operator can be used to extract single elements from a list. You can also use the `$` operator to extract elements by name.  The difference between `[[` and `$` is that the `[[` operator can take computed indices, whereas the `$` operator can only be used with literal names. 
+
+```{r}
+x <- list(foo = 1:4, bar = list(0.6, "a", T))
+x[[1]]
+
+## by literal name
+x[["bar"]]
+
+## using $ operator 
+x$foo # note that quotes are not needed when using the $ operator
+
+## using computed indices
+name <- "foo"
+x[[name]]
+```
+
+#### Subsetting nested elements of a list
+
+```{r}
+x <- list(foo = 1:4, bar = list(0.6, "a", T))
+
+## Get the 3rd element of the 2nd element
+x[[c(2, 3)]]
+
+## same as above
+x[[2]][[3]]
+```
+
+#### Extract multiple elements of a list using `[` operator
+
+```{r}
+x <- list(foo = 1:3, bar = 1.3, baz = "New York")
+x[c(1, 3)]
+```
+
+Remember that the `[` operator always returns an object of the same class. 
+
+## 4. Remove NA values
+
+A common task in data analysis is removing missing vlaues (NA's). 
+
+```{r}
+x <- c(2, 3, NA, 4, NA)
+bad <- is.na(x)
+x[!bad]
+```
+
+You can use the `complete.cases` function to remove elements or rows with any NA value. 
+
+```{r}
+x <- c(2, 3, NA, 4, 4, 5)
+y <- c(NA, 2, 3, NA, NA, 3)
+good <- complete.cases(x, y)
+good
+x[good]
+y[good]
+```
+
+Using `complete.cases` on data frames:
+```{r}
+head(airquality)
+good <- complete.cases(airquality) # returns a logical vector that aligns with the rows in the data frame
+typeof(good) 
+head(airquality[good, ])
+```
+
+
+
+
+
+
+

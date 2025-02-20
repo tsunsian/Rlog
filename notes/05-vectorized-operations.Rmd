@@ -1,0 +1,59 @@
+---
+title: "Vectorized Operations"
+output: 
+  html_document:
+    toc: yes
+---
+
+
+Many operations in R are vectorized, meaning that operations occur in parallel in certain R objects. This allows you to write code that is efficient, concise, and easier to read than in non-vectorized languages. Without vectorization, you would have to do a for-loop or something like that. 
+
+```{r}
+x <- 1:4
+y <- 5:8
+x + y
+x >= 2
+y == 6
+x * y
+x / y
+```
+
+## 1. Vector recycling
+
+If two vectors are not of the same length in an operation, then the shorter vector will be recycled to match size of longer vector. 
+
+```{r}
+first <- c(1, 2)
+second <- c(10, 20, 30, 40)
+first + second
+```
+
+Delete a Vector in R: 
+```{r}
+j <- NULL
+```
+
+Sort a vector: 
+```{r}
+x <- c(1, 2, 22, 11, 33)
+sort(x)
+sort(x, decreasing = TRUE)
+```
+
+
+## 2. Vectorized matrix operations. 
+
+Matrix operations can also be vectorized. This way we can do element-by-element operations on matrices without having to loop over every element. 
+
+```{r}
+x <- matrix(1:4, 2, 2)
+y <- matrix(rep(10, 4), 2, 2)
+
+## element-wise multiplication
+x * y
+
+## true matrix multiplication
+x %*% y 
+```
+
+

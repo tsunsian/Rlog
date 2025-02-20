@@ -1,0 +1,159 @@
+---
+title: "Scoping rules of R"
+output: html_document
+---
+
+When R tries to bind a value to a symbol, it searches through a series of `environments` to find the appropriate value. 
+
+
+### 1. Environment
+
+An *environment* is a collection of (symbol, value) pairs, i.e. `x` is a symbol, its value might be a vector, list, data frame, function, etc.. 
+
+- Every environment has a parent environment, and it's possible for an environment to have multiple "children". 
+- The only environment without a parent environment is the *empty environment*. 
+- A function together with an environment, makes up what is called a *closure* or *function closure*. Most of the time, we don't need to think too much about a function and its associated environment (i.e. closure), but occasionally, this setup can be very useful. *The function closure model can be used to create functions that "carry around" data with them. *
+
+When you are working on the command line, and need to retrieve the value of an R object, the order in which things occur is roughly
+
+1. Search the global environment (i.e. your workspace) for a symbol name matching the one requested
+2. Search the namespaces of each of the packages on the **search list**
+
+The *global environment* is the user's workspace, and contains all the objects you have defined or loaded into R. 
+
+#### 1.1 Search list
+
+The search list can be found by using the `search()` function. 
+
+```
+> search()
+ [1] ".GlobalEnv"        "tools:rstudio"     "package:stats"     "package:graphics"  "package:grDevices"
+ [6] "package:utils"     "package:datasets"  "package:methods"   "Autoloads"         "package:base"    
+```
+
+- The *global environment* or the user's workspace is always the first element of the search list and the `base` package is always the last. 
+- For better or for worse, the order of packages on the search list matters, particularly if there are multiple objects with the same name in different packages. 
+- Users can configure which packages get loaded on startup, so if you are writing a function or package, you cannot assume there will be a list of packages available in a given order. 
+- When a user loads a package with `library()`, the namespace of that package gets put in position 2 of hte search list by default, and everything else gets shifted down the list. This is if the package is not already in the search list.  If the package is already in the search list, then its order in the search list remains unchanged after calling `library()`. 
+- R has separate namespaces for functions and non-functions, so it's possible to have an object named `c` and a funtion named `c` in the same environment, i.e. functions and non-functions are distingushable. 
+
+
+### 2. Scoping rules 
+
+The scoping rules of a language determine how a value is associated with a *free variable* in a function. 
+
+R uses **lexical scoping** (or static scoping). An alternative to lexical scoping is *dynamic scoping* which is implemented by some languages.
+
+- The scoping rules for R are the main feature that makes it different from the original S language. 
+- Related to the scoping rules is how R uses the *search list* to bind a value to a symbol.
+
+#### 2.1 Free variables
+
+Free variables are not formal arguments, and are not local variables assigned in the function body. 
+```
+> f <- function(x, y) {
++     x^2 + y / z
++ }
+```
+
+In the example above, the symbol `z` is called a *free variable*. 
+
+#### 2.2 Lexical Scoping
+
+Lexical scoping means that 
+
+> *the values of free variables are searched for in the environment in which the function was defined.* 
+
+So how does R associate a value with a free variable? The search process goes as follows: 
+
+- If the value of a symbol is not found in the environment in which a function was defined, then the search is continued in the *parent environment*.
+- The search continues up the sequence of parent environments until we hit the *top-level environment*, which is usually the global environment or the namespace of a package. 
+- After the top-level environment, the search continues down the *search list* until we hit the *empty environment*
+- If a value for a given symbol can't be found once the empty environment is reached, then an error is thrown. 
+
+#### 2.3 Constructor functions
+
+Constructor functions are functions that can construct other functions. In R, you can have functions defined inside other functions (languages like C don't let you do this). Now things get interesting - in this case the environment in which a function is defined is the *body of another function*. 
+
+```
+> make.power <- function(n) {
++     pow <- function(x) {
++         x^n
++     }
++     pow
++ }
+```
+
+The `make.power()` above is a kind of "constructor function". 
+
+```
+> cube <- make.power(3)
+> square <- make.power(2)
+> cube(2)
+[1] 8
+> square(2)
+[1] 4
+
+> cube
+function(x) {
+        x^n
+    }
+<environment: 0x7fbfeb046e00>
+
+```
+
+Looking at the definition of `cube()`, we notce that it has a free variable `n`. According to lexical scoping rules, its value is taken from the environment inwch the function was defined, i.e. the `make.power()` function. 
+
+```
+> make.power
+function(n) {
+    pow <- function(x) {
+        x^n
+    }
+    pow
+}
+<bytecode: 0x7fbfd775b1e0>
+```
+
+Also, you notice that there's an environment tag (*<enviroment: >*) when we print out the function definition. That is the defining environment for this function. Normally if you define a function in the global environment, there wouldn't be a special environment tag. However, when you define a function inside another function, there has to be a pointer to the defining environment so that R can remember/look up what the values of all the free variables are. 
+
+The pointer is simply a hexadecimal number which gives the address of the defining environment in the memory. 
+
+We can explore the environment of a function to see what objects are there and their values. 
+
+```
+> ls(environment(cube))
+[1] "n"   "pow"
+> get("n", environment(cube))
+[1] 3
+```
+
+#### 2.4 Lexical vs dynamic scoping 
+
+We can use the following example to demonstrate the difference between lexical and dynamic scop8ing rules. 
+
+```
+> y <- 10
+> 
+> f <- function(x) {
++     y <- 2
++     y^2 + g(x)
++ }
+> 
+> g <- function(x) {
++     x * y
++ }
+```
+
+What is the value of `f(3)` going to be?
+
+With lexical scopng, the value of `y` in the function `g` is looked up in the environment in which `g` was defined, in this case the global environment, so the value of `y` is 10. 
+
+With dynamic scoping, the value of `y` is looked up in the environment from which `g` was called (*calling environment*), in this case the body of `f`, so the value of `y` is 2. 
+
+```
+> f(3)
+[1] 34
+```
+
+

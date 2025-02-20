@@ -1,0 +1,28 @@
+---
+title: "Useful R functions"
+output: html_document
+---
+
+## 1. `sample()`
+
+Take a sample of designated size from the elements of a vector. 
+
+## 2. `subset()`
+
+Return subsets of vectors, matrices or data frames by condition.
+
+## 3. `range()` 
+
+Return a vector containing the minimum and maximum of all the given arguments. 
+
+## 4. `strwrap()`
+
+Wrap long character strings to format paragraphs at the designated column width. 
+
+## 5. `filter()`
+
+Function used to subset data frames meeting specified conditions. 
+
+## 6. `do.call()`
+
+

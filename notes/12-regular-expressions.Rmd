@@ -1,0 +1,120 @@
+---
+title: "Regular Expressions"
+output: html_document
+---
+
+The primary R functions for dealing with regular expressions are
+
+- `grep()`, `grepl()`: These functions search for matches of a regular expression in a character vector. `grep()` returns the indices into the character vector that contain a match. `grepl()` returns a `TRUE/FALSE` vector indicating which elements of the vector contain a match. 
+- `regexpr()`, `gregexpr()`: search a character vector for regular expression matches and return the indices of the string where the match begins and the length of the match.
+- `sub()`, `gsub()`: search a character vector for regular expression matches and replace that match with another string. 
+- `regexec()`: This function searches a character vector for a regular expression, much like `regexpr()`, but it will additionally return the locations of any parenthesized sub-expressions. 
+
+### 1. `grep()`
+
+By default, `grep()` return indices with a regular expression match. 
+
+```
+> str(grep)
+function (pattern, x, ignore.case = FALSE, perl = FALSE, value = FALSE, fixed = FALSE, useBytes = FALSE, 
+    invert = FALSE)  
+> 
+> grep("^New", state.name)
+[1] 29 30 31 32
+> 
+> ## return value instead
+> grep("^New", state.name, value = TRUE)
+[1] "New Hampshire" "New Jersey"    "New Mexico"    "New York" 
+```
+
+### 2. `grepl()`
+
+The `grepl()` works much like `grep()` except it returns a logical vector indicating which element has a regular expression match, and which doesn't. 
+
+```
+> g <- grepl("^New", state.name)
+> g
+ [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[17] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE
+[33] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[49] FALSE FALSE
+> state.name[g]
+[1] "New Hampshire" "New Jersey"    "New Mexico"    "New York" 
+```
+
+### 3. `regexpr()` and `gregexpr()`
+
+Both `grep()` and `grepl()` have limitations. In particular, both functions tell you which strings in a character vector match a certain pattern, but they don't tell you exactly where the match occurs or what the match is for a more complicated regular expression. 
+
+The `regexpr()` function gives you (a) the index into each string where the match begins, and (b) the length of the match for that string.  
+
+- `regexpr()` only gives you the first match
+- `gregexpr()` gives you all of the matches if there are more than one match
+
+After knowing where the match begins and the length of it, we can use the `substr()` to extract the matching string. 
+
+```
+> str(substr)
+function (x, start, stop)  
+```
+
+Or a more convenient way is to use the `regmatches()` function which extracts the matches for you without you having to use `substr()`. 
+
+```
+m <- regexpr("[Ff]ound(>*?)", data[1:5])
+regmatches(data[1:5], m)
+```
+
+### 4. `sub()` and `gsub()`
+
+These two function will match a pattern and substitute the match with designated string.  The difference between `sub()` and `gsub()` is that `sub()` will replace the first occurrence, whereas `gsub()` will replace all occurrences. 
+
+```
+> str(sub)
+function (pattern, replacement, x, ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE)  
+> str(gsub)
+function (pattern, replacement, x, ignore.case = FALSE, perl = FALSE, fixed = FALSE, useBytes = FALSE) 
+```
+
+## 5. `regexec()`
+
+The `regexec()` function works like `regexpr()` except it gives you the indices for parenthesized sub-expressions. 
+
+```
+> x <- "Random text Date Feb 11, 2021 xxxxxx"
+>
+> ## Using regexpr() will return the beginning and length of the entire matching string
+> r <- regexpr("Date (.*) x+", x)
+> r
+[1] 13
+attr(,"match.length")
+[1] 24
+attr(,"index.type")
+[1] "chars"
+attr(,"useBytes")
+[1] TRUE
+>
+> ## In contrast, using regexec() will additionally return the beginning and length of 
+> ## the parenthesized sub-expression
+> r <- regexec("Date (.*) x+", x)
+> r
+[[1]]
+[1] 13 18
+attr(,"match.length")
+[1] 24 12
+attr(,"index.type")
+[1] "chars"
+attr(,"useBytes")
+[1] TRUE
+```
+
+We can then use the `regmatches()` function. Notice that in this case, `regmatches()` returns a list. 
+
+```
+> regmatches(x, r)
+[[1]]
+[1] "Date Feb 11, 2021 xxxxxx" "Feb 11, 2021"   
+```
+
+
+

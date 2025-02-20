@@ -1,0 +1,55 @@
+
+---
+title: "R interfaces to the outside world"
+output: html_document
+---
+
+Data are read in using connection interfaces. Connections allow R functions to talke to different external objects, such as a database, a simple text file, or a web service API, without you having to write custom code for each object. 
+
+* `file` - Opens a connection to a file
+* `gzfile` - opens a connection to a file compressed with gzip
+* `bzfile` - opens a connection to a file compressed with bzip2
+* `url` - opens a connection to webpage
+
+## 1. File connections 
+
+Connections to text files can be created with the `file()` function. 
+
+```{r}
+str(file)
+```
+
+Highlight a few arguments of `file()`: 
+
+* `description` - name of the file
+* `open` - character code indicating the mode the file should be opened in, allowed values are
+  * `r` - read only mode
+  * `w`- open a file for writing (and initializing a new file)
+  * `a` - open a file for appending
+  * `rb`, `wb`, `ab` - reading, writing, or appending in binary mode (Windows)
+  
+In practice, we often don't need to deal with the connection interface directly as many functions for reading and writing data just deal with it in the background. 
+
+## 2. Reading lines of a text file
+
+Text files can be read line by line using the `readLines()` function. This function is useful for reading text files that may be unstructured or contain non-standard data (that can't be processed using `read.table` or `read.csv`). 
+
+```{r}
+con <- gzfile("test.RData.gz")
+readLines(con, 3)
+```
+
+## 3. Reading from a URL connection
+
+The `readLines()` function can be useful for reading in lines of webpages. Since web pages are basically text files that are stored on a remote server, there is conceptually not much difference between a web page and a local text file. However, we need R to negotiate the communication between your computer and the web server. 
+
+```{r}
+## open a connection
+con <- url("https://github.com", "r")
+
+## read the web page
+x <- readLines(con)
+head(x)
+```
+
+While reading in a simple web page is sometimes useful, particularly if data are embedded in the web page somewhere. However, more commonly we can use URL connection to read in specific data files that are stored on we servers. 

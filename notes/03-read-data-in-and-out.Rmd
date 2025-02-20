@@ -1,0 +1,143 @@
+
+---
+title: "Read data in and out of R"
+output: html_document
+---
+
+## 1. Functions to read and write data
+
+There are many R packages that have been developed to read in all kinds of datasets. If you are working in a specific area, you may need to resort to one of these packages. But in general, there are the following principal functions in R. 
+
+#### 1.1 Read in 
+
+1.  `read.table`, `read.csv` - for reading tabular data
+2. `readLines` - for reading lines of a text file
+3. `source` - for readin in files of R objects (inverse of `dump`)
+4. `dget` - for reading in files of a single R object (inverse of `dput`)
+5. `load` - for reading in saved workspaces
+6. `unserialize` - for reading single R object in binary form
+
+#### 1.2 Write out
+There are analogous functions for writing data to files. 
+
+1. `write.table` - for writing tabular data to text files (i.e. CSV) or connections
+2. `writeLines` - for writing strings line by line to a file or connection
+3. `dump` - for dumping a textual presentation of multiple R objects
+4. `dput` - for outputting a textual presentation of an R object
+5. `save` - for saving an arbitrary number of R objects in binary format (possibly compressed) to a file
+6. `serialize` - for converting an R object into a binary format for outputting to a file or connection
+
+## 2. Understand the `read.table()` function
+
+* `file` - name of a file or connection
+* `header` - logical indicating if the file has a header line, default is `FALSE`
+* `sep` - a character indicating how the columns are separated, default is ""
+* `colClasses` - a character vector indicating the class of columns in the dataset
+* `nrows` - integer, the max number of rows to read in
+* `comment.char` - character indicating the comment character. Default is #. If there are no commented lines, it's worth setting this to be "" to be more efficient
+* `skip` - integer, number of lines to skip from the beginning
+* `stringAsFactors` - logical, should character variables be coded as factors? Default is TRUE. Can use the global option: `options(stringAsFactors = FALSE)`. 
+
+#### 2.1 Speed up `read.table()` 
+
+* Read the help page for `read.table`, which contains many hints
+* Make a rough calculation for memeroy required to store your dataset, which if larger than RAM, you probably can stop right here. 
+* Set `comment.char = ""` if there are no commened lines n the file
+* Use `colClasses` argument instead of using default can make `read.table` run much faster
+* set `nrows`. This doesn't help R run faster but it helps with memory usage. 
+
+## 3. Estimating memory requirements of R objects
+
+On most modern computers, double precision floating point numbers are stored using 64 bits, or 8 bytes. Given this info, a data frame with 1,500,000 rows and 120 columns will roughly require: 
+
+> 1,500,000 x 120 x 8 bytes/numeric / 2**30 bytes/GB =  1.34 GB 
+
+## 4. Storing data using textual format
+
+Data can be stored in a variety of ways:
+
+* structured format, like CSV or tab-delimited
+* textual format - intermediate format between structured and binary
+* binary format 
+
+Textual format is native to R. Compared to binary format, it's a more descriptive represenation of an R object by using the `dump()` or `dput()` function, and can be editable.  
+
+Unlike writing out a table or CSV file, `dump()` and `dput()` preserve the metadata (sacrificing some readability), so that another user doesn't have to specify it all over again. For example, we can preserve the class of each column or the levels of a factor variable. 
+
+There are a few downsides to using the intermediate textual format. For example, this format is not very space-efficient because all the metadata is specified. 
+
+#### 4.1 using `dput()` and `dump()`
+
+```{r}
+y <- data.frame(a = 1, b = "4")
+dput(y)
+dput(y, file = "test.R") ## The output of `dput()` can be saved directly to a file. 
+new.y <- dget("test.R")
+new.y
+```
+
+Notice that the `dput()` output is in the form of R code, and that it preserves metadata like the class of object, row names. 
+
+Multiple objects can be deparsed at once using the `dump()` function and read back in using `source()`. 
+
+```{r}
+x <- "a"
+y <- data.frame(a = 1L, b = "New York")
+dump(c("x", "y"), file = "test.R")
+rm(x, y)
+source("test.R")
+str(y)
+x
+```
+
+
+## 5. Storing data using binary format
+
+The complement to the textual format is the binary format, which is sometimes necessary to use for efficiency purposes, or because there's just no useful way to represent data in a textual manner. Also, with numeric data, once can often lose precision when converting to and from a textual format, so it's better to stick with a binary format. 
+
+The key functions for converting R objects to a binary format are `save()`, `save.image()`, and `serialize()`.  
+
+#### 5.1 `save()`
+
+```{r}
+a <- data.frame(x = rnorm(10), y = runif(10))
+b <- 1:100
+
+## save 'a' and 'b' to a file
+save(a, b, file = "test.rda")
+
+## loead 'a' and 'b' into workspace
+load('test.rda')
+```
+
+#### 5.2 `save.image()`
+
+One can save all objects in the workspace using the `save.image` function. 
+
+```{r}
+## save everything into a file
+save.image(file = "test.RData")
+
+## load all objects back into the workspace
+load("test.RData")
+```
+
+Notice that I have used the `.rda` extension when using `save()` and the `.RData` extension when using `save.image()`. This is just personal preference. The `save()` and `save.image()` functions do not care. However, `.rda` and `.RData` are fairly common extensions. 
+
+
+#### 5.3 `serivalize()`
+
+The `serialized()` function is used to convert R objects into a binary format that can be communicated across an arbitrary connection. It could get sent over a network or other connection. 
+
+When you call `serialize()` on an R object, the output will be a raw vector coded in hexadecimal format. 
+
+```{r}
+x <- list(1, 2, 3)
+serialize(x, NULL)
+```
+
+If you want, the output can be sent to a file, but in that case, you are better off using someting like `save()`. 
+
+The primary benefit of the `serialize()` function is that it is the only way to perfectly represent an R object in an exportable format, without losing precision or any metadata. If that is what you need, then `serialize()` is the function for you. 
+
+

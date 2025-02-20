@@ -1,0 +1,550 @@
+---
+title: "Loop functions"
+output: 
+  html_document: 
+    toc: yes
+    toc_depth: 5
+    toc_float: yes
+---
+
+R has some functions which implement looping in a compact form to make your life easier, especially when working interactively on the command line (saving from having to write `for` or `while` loops): 
+
+- `lapply`: Loop over a list and evaluate a function each each element
+- `sapply`: Same as `lapply` but try to simplify the result
+- `apply`: Apply a function over the margins of an array
+- `tapply`: Apply a function over subsets of a vector
+- `mapply`: Multivariate version of `lapply`
+
+An auxiliary function `split` is also useful, particularly in conjunction with `lapply`. 
+
+Functions in R can be passed back and forth as arguments just like any other object. 
+
+## 1. `lapply()`
+
+#### 1.1 What it does
+
+The `lapply` function does the following simple series of operations: 
+
+1. it loops over a list, iterating over each element in the list
+2. it applies a function (specified by user) to each element of the list 
+3. and returns a list (the `l` is for "list")
+
+It's important to remember that `lapply()` always returns a list, regardless of the class of the input. 
+
+#### 1.2 Arguments
+
+This function takes three arguments: 
+
+1. `X`: a list. If `X` is not a list, it will be coerced to a list using `as.list()`. 
+2. `FUN`: a function (or the name of a function)
+3. `...`: other arguments to `FUN`
+
+```
+> lapply
+function (X, FUN, ...) 
+{
+    FUN <- match.fun(FUN)
+    if (!is.vector(X) || is.object(X)) 
+        X <- as.list(X)
+    .Internal(lapply(X, FUN))
+}
+<bytecode: 0x7fbfe7934390>
+<environment: namespace:base>
+```
+
+Note that the actual looping is done internally in C code for efficiency purpose. 
+
+#### 1.3 How it's used
+
+##### 1.3.1 Passing a function name
+
+```
+> x <- 1:3
+> lapply(x, runif)
+[[1]]
+[1] 0.690924
+
+[[2]]
+[1] 0.2752289 0.3005445
+
+[[3]]
+[1] 0.460422 0.674376 0.280246
+```
+
+##### 1.3.2 Passing a function name with additional arguments
+
+When you pass a function to `lapply()`, it takes elements of the list and pass them as the **first argument** of the function you are applying. In the case of `runif()`, the first argument is `n`. 
+
+```
+> str(runif)
+function (n, min = 0, max = 1) 
+````
+
+Functions that you pass to `lapply()` may have other arguments. For example, `runif()` has `min` and `max` arguments too. Here is where the `...` comes into play. Any arguments you place in the `...` argument will get passed down to the function being applied to the elements of the list. 
+
+```
+> lapply(x, runif, min = 1, max = 4)
+[[1]]
+[1] 2.982108
+
+[[2]]
+[1] 3.279238 3.646522
+
+[[3]]
+[1] 3.421136 1.148264 1.093550
+```
+
+##### 1.3.3 Applying anonymous functions
+
+The `lapply()` function and its friends make heavy use of *anonymous* functions, which are functions that do not have names. These functions are generated "on the fly" as you are using the `lapply()` function. Once the call to `lapply()` is finished, the function disappears and does not appear in the workspace. 
+
+```
+> x <- list(a = matrix(1:4, 2, 2), b = matrix(1:6, 2, 3))
+>
+> lapply(x, function(m) { m[1, ] }) # Return the first row of each matrix
+$a
+[1] 1 3
+
+$b
+[1] 1 3 5
+```
+
+Notice that if the original list has names, then the names will be preserved in the output. 
+
+#### 1.4 Combine `lapply()` with `[]` 
+
+```{r}
+l <- lapply(1:3, rnorm)
+l
+lapply(l, "[", 1) ## returns the first element of the first list element
+lapply(1:3, "+", 10)
+```
+
+```{r}
+## list of data frames
+ldf <- list(airquality = airquality)
+
+lapply(ldf, "[", 1,) # returns first row of each data frame
+```
+
+## 2. `sapply()`
+
+The `sapply()` function behaves similarly to `lapply()`. The only real difference is in the return value. 
+
+```
+> sapply
+function (X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE) 
+{
+    FUN <- match.fun(FUN)
+    answer <- lapply(X = X, FUN = FUN, ...)
+    if (USE.NAMES && is.character(X) && is.null(names(answer))) 
+        names(answer) <- X
+    if (!isFALSE(simplify) && length(answer)) 
+        simplify2array(answer, higher = (simplify == "array"))
+    else answer
+}
+<bytecode: 0x7f81dc216158>
+<environment: namespace:base>
+```
+
+`sapply()` will try to simplify the result (`simplify = TRUE` by default) of `lapply()`, if possible. Essentially, `sapply()` calls `lapply()`, then applies the following algorithm to the result: 
+
+* if the result is a list where every element is of length 1, then a vector is returned
+* if the result is a list where every element is a vector of the same length (> 1), then a matrix is returned
+* if it can't figure things out, a list is returned
+
+See the example below: 
+
+```
+> x <- list(a = 1:5, b = rnorm(12), c = rnorm(100, 2))
+>
+> lapply(x, mean)
+$a
+[1] 3
+
+$b
+[1] -0.3842057
+
+$c
+[1] 1.957382
+
+> sapply(x, mean)
+         a          b          c 
+ 3.0000000 -0.3842057  1.9573819 
+ ```
+
+## 3. `split()` and `lapply()/sapply()`
+
+#### 3.1 `split()`
+
+The `split()` function takes a vector or other objects and splits it into groups determined by a factor or list of factors. 
+
+The arguments to `split()` are
+
+```
+> str(split)
+function (x, f, drop = FALSE, ...) 
+```
+
+- `x`: a vector (or list) or data frame to be split
+- `f`: a factor (or coerced to one) or a list of factors
+- `drop`: a ligical indicating whether empty factor levels should be dropped
+
+#### 3.2 map-reduce
+
+The combination of `split()` and a function like `lapply()` or `sapply()` is a common paradigm in R. 
+
+The basic idea is that you can take a data structure, split it into subsets defined by another variable (factor or list of factors), and apply a function over these subsets. The results of applying that function over the subsets are then collated and returned as an object. This sequence of operations is sometimes referred to as "map-reduce" in other contexts. 
+
+##### 3.2.1 A simple example
+
+We simulate some data `x` and use the `gl()` function to "generate levels" in a factor variable. 
+
+```
+> x <- c(rnorm(10), runif(10)) ## simulated data
+>
+> f <- gl(2, 10) 
+>
+> split(x, f)
+$`1`
+ [1]  0.009663156  0.917298369  1.442389349 -0.435288574 -1.211141314  1.423196867  0.757516307  1.065332158
+ [9]  0.925139352 -0.813924076
+
+$`2`
+ [1] 0.69933126 0.01306315 0.06297059 0.83578065 0.21826523 0.03589954 0.86541795 0.86013921 0.86748661
+[10] 0.53684158
+
+> lapply(split(x, f), mean)
+$`1`
+[1] 0.4080182
+
+$`2`
+[1] 0.4995196
+```
+
+##### 3.2.2 Splitting a data frame
+
+```
+> head(airquality)
+  Ozone Solar.R Wind Temp Month Day
+1    41     190  7.4   67     5   1
+2    36     118  8.0   72     5   2
+3    12     149 12.6   74     5   3
+4    18     313 11.5   62     5   4
+5    NA      NA 14.3   56     5   5
+6    28      NA 14.9   66     5   6
+```
+
+We can split the `airquality` data frame by the `Month` varaible so that we have sub-data frames for each month. Then we can take the column menas for `Ozone`, `Solar.R`, and `Wind` for each sub-data frame. 
+
+```
+> sapply(split(airquality, airquality$Month), function(x) { colMeans(x[, c("Ozone", "Solar.R", "Wind")]) })
+               5         6          7        8        9
+Ozone         NA        NA         NA       NA       NA
+Solar.R       NA 190.16667 216.483871       NA 167.4333
+Wind    11.62258  10.26667   8.941935 8.793548  10.1800
+```
+
+We can tell `colMeans()` to remove the `NA` before computing the mean. 
+
+```
+> sapply(split(airquality, airquality$Month), function(x) { 
++                                colMeans(x[, c("Ozone", "Solar.R", "Wind")],
++                                         na.rm = TRUE)
++ })
+                5         6          7          8         9
+Ozone    23.61538  29.44444  59.115385  59.961538  31.44828
+Solar.R 181.29630 190.16667 216.483871 171.857143 167.43333
+Wind     11.62258  10.26667   8.941935   8.793548  10.18000
+```
+
+#### 3.3 Splitting an object by a list of factors
+
+Occasionally, we may want to split an R object according to levels defined in more than one variable. We can do this by creating an interaction of the variables with the `interaction()` funciton. 
+
+```
+> x <- rnorm(10)
+> f1 <- gl(2, 5)
+> f2 <- gl(5, 2)
+> f1
+ [1] 1 1 1 1 1 2 2 2 2 2
+Levels: 1 2
+> f2
+ [1] 1 1 2 2 3 3 4 4 5 5
+Levels: 1 2 3 4 5
+> ## Create interaction of two factors
+> interaction(f1, f2)
+ [1] 1.1 1.1 1.2 1.2 1.3 2.3 2.4 2.4 2.5 2.5
+Levels: 1.1 2.1 1.2 2.2 1.3 2.3 1.4 2.4 1.5 2.5
+```
+
+With multiple factors and many levels, creating an interaction can result in levels that are empty. 
+
+```
+> str(split(x, list(f1, f2)))
+List of 10
+ $ 1.1: num [1:2] -0.441 -1.229
+ $ 2.1: num(0) 
+ $ 1.2: num [1:2] -2.433 0.456
+ $ 2.2: num(0) 
+ $ 1.3: num 0.122
+ $ 2.3: num 1.3
+ $ 1.4: num(0) 
+ $ 2.4: num [1:2] 0.327 0.669
+ $ 1.5: num(0) 
+ $ 2.5: num [1:2] 0.351 1.214
+ ```
+ 
+ We can drop empty levels using the `drop = TRUE` argument, when we call the `split` function. 
+ 
+ ```
+ > str(split(x, list(f1, f2), drop = TRUE))
+List of 6
+ $ 1.1: num [1:2] -0.441 -1.229
+ $ 1.2: num [1:2] -2.433 0.456
+ $ 1.3: num 0.122
+ $ 2.3: num 1.3
+ $ 2.4: num [1:2] 0.327 0.669
+ $ 2.5: num [1:2] 0.351 1.214
+ ```
+ 
+## 4. `tapply()`
+
+#### 4.1 What it does
+
+`tapply()` is used to apply a function over subsets of a *vector*. It can be thought of as a combination of `split()` and `sapply()` for **vectors only**. 
+
+#### 4.2 Arguments
+
+```
+> str(tapply)
+function (X, INDEX, FUN = NULL, ..., default = NA, simplify = TRUE)
+```
+
+- `X`: a vector
+- `INDEX`: a factor or list of factors (or else they are coerced to factors)
+- `FUN`: a function to be applied
+- `...`: contains other arguments to be passed to `FUN`
+- `default`: (only in the case of simplification to an array) the default value with which the array is initialized
+- `simplify`: logical indicating whether result should be simplfied (to vector or matrix) if possible
+
+#### 4.3 How it's used
+
+```
+> ## Simulated data
+> x <- c(rnorm(10), runif(10, 1, 2), rnorm(10, 2, 3))
+> ## Define some groups with a factor variable
+> f <- gl(3, 10)
+> f
+ [1] 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3
+Levels: 1 2 3
+> tapply(x, f, mean)
+         1          2          3 
+-0.2826177  1.5230550  0.7791539 
+```
+
+We can also apply functions that return more than a single value. In this case, `tapply()` will not simplify the result and will return a list. 
+
+```
+> tapply(x, f, range)
+$`1`
+[1] -2.627843  1.085701
+
+$`2`
+[1] 1.075254 1.978602
+
+$`3`
+[1] -3.860199  5.378851
+```
+
+
+## 4. `apply()`
+
+#### 4.1 What it does
+
+The `apply()` function is used to evaluate a function (often an anonymous one) over the margins of an array. The margins of array indicate which dimension of the array you want to preserve or retain when applying the function.  It is most often used to apply a function to the margins of a 2-dimensional array (i.e. rows or columns of a matrix). 
+
+Using `apply()` is not really faster than writing a loop, but it works in one line and is highly compact. 
+
+#### 4.2 Arguments
+
+````
+> str(apply)
+function (X, MARGIN, FUN, ...)  
+````
+
+- `X`: an array
+- `MARGIN`: an integer vector indicating which margins (i.e. dimensions) should be retained
+- `FUN`: function to be applied
+- `...`: other arguments to be passed to `FUN`
+
+#### 4.3 How it's used
+
+##### 4.3.1 Computing mean and sum
+
+```
+> x <- matrix(rnorm(30), 5, 6) ## simulated data
+> 
+> ## calculate row means - retain row
+> apply(x, 1, mean) 
+[1]  0.3574120 -0.6302742 -0.1641080 -0.3496178  0.7261114
+>
+> ## calculate column sums - retain column
+> apply(x, 2, sum) 
+[1] -2.59581983  1.53335090 -1.54728096  0.54232899 -0.07951241  1.78407343
+```
+
+Note that in both calls to `apply()`, the return value was a vector.
+
+**Column/Row means and sums shortcuts**
+
+For the special case of column/row means and sums of matrices, we have some useful shortcuts. 
+
+- `rowSums` = `apply(x, 1, sum)`
+- `rowMeans` = `apply(x, 1, mean)`
+- `colSums` = `apply(x, 2, sum)`
+- `colMeans` = `apply(x, 2, mean)`
+
+These shortcut functions are heavily optimized and hence are much faster, but you probably won't notice unless you are using a large matrix. 
+
+##### 4.3.2 Functions that return more than one value
+
+```
+> z <- apply(x, 1, quantile, probs = c(0.25, 0.75))
+> z
+          [,1]        [,2]       [,3]       [,4]      [,5]
+25% 0.07192268 -0.75547507 -0.6030952 -0.8981832 0.3274581
+75% 0.73658142 -0.08842743  0.3332758  0.3481048 1.1146807
+> class(z)
+[1] "matrix"
+> dim(z)
+[1] 2 5
+```
+
+Notice that `probs = c(0.25, 0.75)` was passed to `quantile()` via the `...` argument to `apply()`.
+
+##### 4.3.3 Higher dimensions
+
+```
+> x <- array(rnorm(3 * 3 * 20), c(3, 3, 20))
+> apply(x, c(1, 2), mean)
+            [,1]        [,2]        [,3]
+[1,] -0.37885715  0.22341168  0.06165157
+[2,]  0.09062925  0.04278681 -0.02844644
+[3,]  0.20149340 -0.12545219 -0.03321795
+```
+Here the `MARGIN` argument is an integer vector that indicates we want to preserve the first and second dimensions, and collapse the third dimension by taking the mean. 
+
+##### 4.3.4 Nesting `apply()` inside `lapply()` or `sapply()`
+
+Suppose we have a list named `weather`, the components of which are matrices, we can nest `apply` inside `lapply`. 
+
+```{r eval=F}
+apply(weather[[1]], 1, max) # get row max-es
+lapply(weather, apply, 1, max) # iterate over components of weather
+# use anonymous functions
+apply(weather[[1]], 1, function(x) {names(which.max(x))})
+lapply(weather, apply, 1, function(x) {names(which.max(x))})
+```
+
+
+## 5. `mapply()`
+
+#### 5.1 What it does
+
+The `mapply()` function is a multivariate apply of sorts which applies a function in parallel over a set of arguments. Recall that `lapply()` and its friends only iterate over a single R object. If you want to iterate over multiple R objects in parallel, this is when `mapply()` can be used. 
+
+#### 5.2 Arguments
+
+```
+> str(mapply)
+function (FUN, ..., MoreArgs = NULL, SIMPLIFY = TRUE, USE.NAMES = TRUE)  
+```
+
+- `FUN`: a function to be applied
+- `...`: contains R objects to apply over
+- `MoreArgs`: a list of other arguments to `FUN`
+- `SIMPLIFY`: logical indicating whether the result should be simplified
+
+The `mapply()` function has a different argument order from `lapply()`. The `FUN` comes first, and the R objects over which we are applying the function are given in the `...` argument. We can apply over an arbitrary number of R objects. 
+
+#### 5.3 How it's used
+
+Here's a simple example: 
+
+```
+> rep(1:3, 1:3)
+[1] 1 2 2 3 3 3
+>
+> mapply(rep, 1:3, 1:3)
+[[1]]
+[1] 1
+
+[[2]]
+[1] 2 2
+
+[[3]]
+[1] 3 3 3
+```
+
+##### 5.3.1 Vectorizing a function
+
+The `mapply()` function can be used to automatically "vectorize" a function. What this means is that that it takes a function that typically only takes single arguments, and create a new function that can take vector arguments.  This is often needed when you want to plot functions. 
+
+Here's an example of a function that computes the sum of squares given some data, mean and standard deviation. 
+
+```
+> sumsq <- function(mu, sigma, x) {
++   sum(((x - mu) / sigma) ^ 2)
++ }
+```
+
+In many statistical applications, we want to minimize the sum of squares to find the optimal `mu` and `sigma`. Before we do that, we may want to evluate or plot the function for many different `mu` and `sigma`.  
+
+However, passing a vector of `mu` and/or `sigma` won't work because this function is not vectorized.
+
+```
+> set.seed(1)
+> x <- rnorm(100)
+> sumsq(1:10, 1:10, x)
+[1] 103.0051
+```
+
+Note that the call to `sumsq()` produced only one value instead of 10 values. 
+
+We can do what we want to do by using `mapply()`.
+
+```
+> mapply(sumsq, 1:10, 1:10, MoreArgs = list(x = x))
+ [1] 159.27762 109.37504 101.74696  99.62157  98.88671  98.62195  98.54312  98.54430  98.58096  98.63280
+> 
+> z <- vector("numeric", 10)
+> for (i in 1:10) {
++   z[i] <- sumsq(i, i, x)
++ }
+> z
+ [1] 159.27762 109.37504 101.74696  99.62157  98.88671  98.62195  98.54312  98.54430  98.58096  98.63280
+```
+
+There's even a function in R called `Vectorize()` that automatically creates a vectorized version of your function. 
+
+```
+> str(Vectorize)
+function (FUN, vectorize.args = arg.names, SIMPLIFY = TRUE, USE.NAMES = TRUE)  
+>
+> vsumsq <- Vectorize(sumsq, c("mu", "sigma"))
+> vsumsq(1:10, 1:10, x)
+ [1] 159.27762 109.37504 101.74696  99.62157  98.88671  98.62195  98.54312  98.54430  98.58096  98.63280
+```
+
+
+
+
+
+
+
+
+
+
+
+
